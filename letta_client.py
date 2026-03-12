@@ -13,6 +13,39 @@ ENV_API_KEY = "LETTA_API_KEY"
 ENV_SERVER_PASSWORD = "LETTA_SERVER_PASSWORD"
 DEFAULT_BASE_URL = "http://127.0.0.1:8284"
 
+# Embedding config: Letta requires embedding_config when creating sources/folders.
+# Override via env: DOC_MANAGER_EMBEDDING_ENDPOINT_TYPE, DOC_MANAGER_EMBEDDING_MODEL,
+# DOC_MANAGER_EMBEDDING_DIM, DOC_MANAGER_EMBEDDING_ENDPOINT, DOC_MANAGER_EMBEDDING_CHUNK_SIZE.
+OPENAI_EMBEDDING_DEFAULT = {
+    "embedding_endpoint_type": "openai",
+    "embedding_model": "text-embedding-ada-002",
+    "embedding_dim": 1536,
+    "embedding_endpoint": "https://api.openai.com/v1",
+    "embedding_chunk_size": 300,
+}
+
+
+def _default_embedding_config() -> dict[str, Any]:
+    """Build embedding_config for Letta source/folder create. Uses env overrides or OpenAI default."""
+    cfg = dict(OPENAI_EMBEDDING_DEFAULT)
+    if os.environ.get("DOC_MANAGER_EMBEDDING_ENDPOINT_TYPE"):
+        cfg["embedding_endpoint_type"] = os.environ["DOC_MANAGER_EMBEDDING_ENDPOINT_TYPE"]
+    if os.environ.get("DOC_MANAGER_EMBEDDING_MODEL"):
+        cfg["embedding_model"] = os.environ["DOC_MANAGER_EMBEDDING_MODEL"]
+    if os.environ.get("DOC_MANAGER_EMBEDDING_DIM"):
+        try:
+            cfg["embedding_dim"] = int(os.environ["DOC_MANAGER_EMBEDDING_DIM"])
+        except ValueError:
+            pass
+    if os.environ.get("DOC_MANAGER_EMBEDDING_ENDPOINT"):
+        cfg["embedding_endpoint"] = os.environ["DOC_MANAGER_EMBEDDING_ENDPOINT"]
+    if os.environ.get("DOC_MANAGER_EMBEDDING_CHUNK_SIZE"):
+        try:
+            cfg["embedding_chunk_size"] = int(os.environ["DOC_MANAGER_EMBEDDING_CHUNK_SIZE"])
+        except ValueError:
+            pass
+    return cfg
+
 
 def _get_config() -> tuple[str, str]:
     base = (os.environ.get(ENV_BASE_URL) or os.environ.get("LETTA_SERVER_URL") or "").strip() or DEFAULT_BASE_URL
@@ -115,7 +148,8 @@ def list_sources() -> dict[str, Any]:
 
 
 def create_source(name: str) -> dict[str, Any]:
-    out = _post_json("/v1/sources/", {"name": name})
+    body = {"name": name, "embedding_config": _default_embedding_config()}
+    out = _post_json("/v1/sources/", body)
     if out.get("status") != "success":
         return out
     return {"status": "success", "source": out.get("data")}
@@ -151,7 +185,8 @@ def list_folders() -> dict[str, Any]:
 
 
 def create_folder(name: str) -> dict[str, Any]:
-    out = _post_json("/v1/folders/", {"name": name})
+    body = {"name": name, "embedding_config": _default_embedding_config()}
+    out = _post_json("/v1/folders/", body)
     if out.get("status") != "success":
         return out
     return {"status": "success", "folder": out.get("data")}
