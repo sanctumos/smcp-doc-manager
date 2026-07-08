@@ -42,6 +42,7 @@ DOCX_CONTENT_TYPE = "application/vnd.openxmlformats-officedocument.wordprocessin
 def get_plugin_description() -> Dict[str, Any]:
     """Return structured plugin description for SMCP --describe."""
     return {
+        "contract_version": "1.0",
         "plugin": {
             "name": "doc_manager",
             "version": PLUGIN_VERSION,
